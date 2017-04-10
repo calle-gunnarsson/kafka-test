@@ -1,0 +1,17 @@
+FROM debian:jessie
+
+RUN apt-get update && apt-get -y install build-essential pkg-config git software-properties-common python-software-properties wget
+RUN wget -qO - http://packages.confluent.io/deb/3.1/archive.key | apt-key add -
+RUN add-apt-repository "deb [arch=amd64] http://packages.confluent.io/deb/3.1 stable main"
+RUN apt-get update && apt-get install -y librdkafka-dev libyajl-dev
+RUN apt-get install -y libavro-c1 libavro-c-dev
+
+RUN mkdir /code
+
+ADD ./src/csumer /code
+ADD ./src/schema.avsc /code/schema.avsc
+
+WORKDIR /code
+RUN gcc -lrdkafka -lavro -Wall main.c -o /usr/bin/consumer
+
+CMD /usr/bin/consumer

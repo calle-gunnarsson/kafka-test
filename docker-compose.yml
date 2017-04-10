@@ -1,0 +1,58 @@
+version: '2.1'
+services:
+    zookeeper:
+        image: zookeeper:3.4
+        healthcheck:
+            test: "exit 0"
+
+    kafka:
+        build:
+            context: .
+            dockerfile: Dockerfile.kafka
+        depends_on:
+            zookeeper:
+                condition: service_healthy
+        links:
+            - zookeeper
+        healthcheck:
+            test: "exit 0"
+
+    producer:
+        build:
+            context: .
+            dockerfile: Dockerfile.producer
+        depends_on:
+            kafka:
+                condition: service_healthy
+        links:
+            - kafka
+
+    pysumer:
+        build:
+            context: .
+            dockerfile: Dockerfile.pysumer
+        depends_on:
+            kafka:
+                condition: service_healthy
+        links:
+            - kafka
+
+    gosumer:
+        build:
+            context: .
+            dockerfile: Dockerfile.gosumer
+        depends_on:
+            kafka:
+                condition: service_healthy
+        links:
+            - kafka
+
+    csumer:
+        build:
+            context: .
+            dockerfile: Dockerfile.csumer
+        depends_on:
+            kafka:
+                condition: service_healthy
+        links:
+            - kafka

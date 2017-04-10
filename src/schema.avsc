@@ -1,0 +1,10 @@
+{
+    "namespace": "schema.avro",
+    "type": "record",
+    "name": "Ad",
+    "fields": [
+        {"name": "id",  "type": "int"},
+        {"name": "subject", "type": "string"},
+        {"name": "price",  "type": "int"}
+    ]
+}

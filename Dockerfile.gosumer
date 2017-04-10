@@ -1,0 +1,16 @@
+FROM golang:latest
+
+RUN apt-get update && apt-get -y install build-essential pkg-config git software-properties-common python-software-properties
+RUN wget -qO - http://packages.confluent.io/deb/3.1/archive.key | apt-key add -
+RUN add-apt-repository "deb [arch=amd64] http://packages.confluent.io/deb/3.1 stable main"
+RUN apt-get update && apt-get install -y librdkafka-dev libyajl-dev
+
+RUN go get -v github.com/linkedin/goavro
+RUN go get -v gopkg.in/confluentinc/confluent-kafka-go.v0/kafka
+
+ADD ./src/gosumer /go/src/app
+ADD ./src/schema.avsc /schema.avsc
+
+RUN cd /go/src/app && go install -v
+
+CMD app

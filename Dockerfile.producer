@@ -1,0 +1,9 @@
+FROM python:3.6
+
+ADD ./src/requirements.txt /requirements.txt
+RUN  pip install -r /requirements.txt
+
+ADD ./src/producer /code
+ADD ./src/schema.avsc /code/schema.avsc
+
+CMD python -u /code/main.py
