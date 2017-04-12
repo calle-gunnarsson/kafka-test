@@ -42,11 +42,15 @@ func main() {
 		"session.timeout.ms":              6000,
 		"go.events.channel.enable":        true,
 		"go.application.rebalance.enable": true,
-		"default.topic.config":            kafka.ConfigMap{"auto.offset.reset": "earliest"}})
+		"default.topic.config": kafka.ConfigMap{
+			"auto.offset.reset":   "earliest",
+			"offset.store.method": "broker",
+		},
+	})
 
 	checkErr(err, "Unable to create consumer")
 
-	fmt.Printf("Created Consumer %v\n", c)
+	fmt.Printf("Created Consumer %s\n", c)
 
 	c.Subscribe(topic, nil)
 	checkErr(err, "Unable to subscribe to topic")
@@ -85,7 +89,8 @@ func main() {
 				adPrice := f.(int32)
 				checkErr(err, "Unable get price from record")
 
-				fmt.Printf("%s - %s - id: %d, subject: %s, price: %d\n", e.TopicPartition, e.Key, adID, adSubject, adPrice)
+				tp := e.TopicPartition
+				fmt.Printf("%s[%d]@%-4d - %-6s - id: %-4d subject: %-7s price: %-6d\n", *tp.Topic, tp.Partition, tp.Offset, e.Key, adID, adSubject, adPrice)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "%% Error: %v\n", err)
 				}

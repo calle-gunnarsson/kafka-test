@@ -1,8 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-import sys
+
 import logging
 from time import sleep
 from random import uniform, randint
-from kafka import KafkaProducer
-from kafka.errors import KafkaError
+from confluent_kafka import Producer
 
 import avro
 import avro.schema
@@ -13,7 +15,21 @@ log = logging.getLogger()
 
 schema = avro.schema.Parse(open("/code/schema.avsc", "rb").read())
 
-producer = KafkaProducer(bootstrap_servers='kafka:9092')
+conf = {'bootstrap.servers': "kafka:9092"}
+
+p = Producer(**conf)
+
+def delivery_callback (err, msg):
+    if err:
+        sys.stderr.write('%% Message failed delivery: %s\n' % err)
+    else:
+        print('topic="{}", partition={}, offset={}, timestamp={}'.format(
+            msg.topic(),
+            msg.partition(),
+            msg.offset(),
+            msg.timestamp()[1]
+        ))
+
 
 for i in range(10000):
     writer = avro.io.DatumWriter(schema)
@@ -27,25 +43,9 @@ for i in range(10000):
 
     writer.write(ad, encoder)
     raw_bytes = bytes_writer.getvalue()
-    future = producer.send('foobar', value=raw_bytes, key=key)
+    p.produce("foobar", value=raw_bytes, key=key, callback=delivery_callback)
+    p.poll(0)
 
-    try:
-        meta = future.get(timeout=10)
-    except KafkaError:
-        # Decide what to do if produce request failed...
-        log.exception()
-        continue
+    sleep(uniform(0.0001, 0.2))
 
-    print('topic="{m.topic}", \
-partition={m.partition}, \
-topic_partition=({m.topic_partition.topic}, {m.topic_partition.partition}), \
-offset={m.offset}, \
-timestamp={m.timestamp}, \
-checksum={m.checksum}, \
-serialized_key_size={m.serialized_key_size}, \
-serialized_value_size={m.serialized_value_size}'.format(m=meta))
-
-    #sleep(uniform(0.0001, 0.2))
-
-producer.flush()
-producer.close()
+p.flush()

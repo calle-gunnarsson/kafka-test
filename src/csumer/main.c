@@ -87,7 +87,7 @@ void init_schema (void)
 
 static void keydump (FILE *fp, const void *ptr, size_t len) {
     const char *p = (const char *)ptr;
-    fprintf(fp, "%s - ", p);
+    fprintf(fp, "%-6s - ", p);
 }
 
 static void avrodump (FILE *fp, const void *ptr, size_t len) {
@@ -105,15 +105,15 @@ static void avrodump (FILE *fp, const void *ptr, size_t len) {
 
         if (avro_record_get(ad, "id", &id_datum) == 0) {
             avro_int32_get(id_datum, &i32);
-            fprintf(fp, "id: %d, ", i32);
+            fprintf(fp, "id: %-4d ", i32);
         }
         if (avro_record_get(ad, "subject", &subject_datum) == 0) {
             avro_string_get(subject_datum, &p);
-            fprintf(fp, "subject: %s, ", p);
+            fprintf(fp, "subject: %-7s ", p);
         }
         if (avro_record_get(ad, "price", &price_datum) == 0) {
             avro_int32_get(price_datum, &i32);
-            fprintf(fp, "price: %d ", i32);
+            fprintf(fp, "price: %-6d ", i32);
         }
         fprintf(fp, "\n");
 
@@ -182,7 +182,7 @@ static void msg_consume (rd_kafka_message_t *rkmessage,
     }
 
     fprintf(stderr,
-        "%s[%"PRId32"]@%"PRId64" - ",
+        "%s[%"PRId32"]@%-4"PRId64" - ",
         rd_kafka_topic_name(rkmessage->rkt),
         rkmessage->partition,
         rkmessage->offset);
@@ -311,6 +311,14 @@ int main (int argc, char **argv) {
 
     if (rd_kafka_topic_conf_set(topic_conf, "offset.store.method",
                 "broker",
+                errstr, sizeof(errstr)) !=
+            RD_KAFKA_CONF_OK) {
+        fprintf(stderr, "%% %s\n", errstr);
+        exit(1);
+    }
+
+    if (rd_kafka_topic_conf_set(topic_conf, "auto.offset.reset",
+                "earliest",
                 errstr, sizeof(errstr)) !=
             RD_KAFKA_CONF_OK) {
         fprintf(stderr, "%% %s\n", errstr);

@@ -1,5 +1,10 @@
 FROM python:3.6
 
+RUN apt-get update && apt-get -y install build-essential pkg-config git software-properties-common python-software-properties
+RUN wget -qO - http://packages.confluent.io/deb/3.1/archive.key | apt-key add -
+RUN add-apt-repository "deb [arch=amd64] http://packages.confluent.io/deb/3.1 stable main"
+RUN apt-get update && apt-get install -y librdkafka-dev libyajl-dev
+
 ADD ./src/requirements.txt /requirements.txt
 RUN  pip install -r /requirements.txt
 
