@@ -5,20 +5,22 @@ import sys
 import logging
 from time import sleep
 from random import uniform, randint
-from confluent_kafka import Producer
-
-import avro
-import avro.schema
-import avro.io
-import io
+from confluent_kafka import avro
+from confluent_kafka.avro import AvroProducer
 
 log = logging.getLogger()
 
-schema = avro.schema.Parse(open("/code/schema.avsc", "rb").read())
+value_schema = avro.load('/code/value_schema.avsc')
+key_schema = avro.load('/code/key_schema.avsc')
 
-conf = {'bootstrap.servers': "kafka:9092"}
+p = AvroProducer({
+        'bootstrap.servers': 'kafka:9092',
+        'schema.registry.url': 'http://registry:8081',
+    },
+    default_value_schema=value_schema,
+    default_key_schema=key_schema
+)
 
-p = Producer(**conf)
 
 def delivery_callback (err, msg):
     if err:
@@ -33,18 +35,12 @@ def delivery_callback (err, msg):
 
 
 for i in range(10000):
-    writer = avro.io.DatumWriter(schema)
-    bytes_writer = io.BytesIO()
-    encoder = avro.io.BinaryEncoder(bytes_writer)
-
     ad_id = randint(0, i)
 
-    key=bytes('ad{}'.format(ad_id), 'utf-8')
+    key='ad{}'.format(ad_id)
     ad = {"id": ad_id, "subject": 'Ad {}'.format(ad_id), "price": randint(1000,100000)}
 
-    writer.write(ad, encoder)
-    raw_bytes = bytes_writer.getvalue()
-    p.produce("foobar", value=raw_bytes, key=key, callback=delivery_callback)
+    p.produce(topic="foobar", value=ad, key=key, callback=delivery_callback)
     p.poll(0)
 
     sleep(uniform(0.0001, 0.2))

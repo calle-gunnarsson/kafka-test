@@ -1,5 +1,5 @@
 {
-    "namespace": "schema.avro",
+    "namespace": "value_schema.avro",
     "type": "record",
     "name": "Ad",
     "fields": [

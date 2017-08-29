@@ -19,8 +19,10 @@ static char *topic = "foobar";
 static int partition = 2;
 static char *debug = NULL;
 
-avro_schema_t schema;
-static char *schema_path = "/code/schema.avsc";
+avro_schema_t value_schema;
+avro_schema_t key_schema;
+static char *value_schema_path = "/value_schema.avsc";
+static char *key_schema_path = "/key_schema.avsc";
 int64_t id = 0;
 
 static int run = 1;
@@ -42,7 +44,7 @@ static void stop (int sig) {
 }
 
 // Read avro schema
-void init_schema (void)
+void init_schema (char *schema_path, avro_schema_t *schema)
 {
     FILE *fp;
     long len;
@@ -75,7 +77,7 @@ void init_schema (void)
     buffer[len] = '\0';
 
     avro_schema_error_t error;
-    avro_schema_from_json(buffer, len, &schema, &error);
+    avro_schema_from_json(buffer, len, schema, &error);
 
     if (error) {
         fprintf(stderr, "Unable to parse schema: %s\n", avro_strerror());
@@ -86,7 +88,11 @@ void init_schema (void)
 
 
 static void keydump (FILE *fp, const void *ptr, size_t len) {
-    const char *p = (const char *)ptr;
+    char *p;
+    avro_datum_t key;
+    avro_reader_t reader = avro_reader_memory(ptr, len);
+    avro_read_data(reader, key_schema, key_schema, &key);
+    avro_string_get(key, &p);
     fprintf(fp, "%-6s - ", p);
 }
 
@@ -97,7 +103,7 @@ static void avrodump (FILE *fp, const void *ptr, size_t len) {
     int rval;
     avro_datum_t ad;
 
-    rval = avro_read_data(reader, schema, schema, &ad);
+    rval = avro_read_data(reader, value_schema, value_schema, &ad);
     if (rval == 0) {
         int32_t i32;
         char *p;
@@ -281,8 +287,10 @@ int main (int argc, char **argv) {
     signal(SIGINT, stop);
     signal(SIGUSR1, sig_usr1);
 
-    if (output == OUTPUT_TEXT)
-        init_schema();
+    if (output == OUTPUT_TEXT) {
+        init_schema(value_schema_path, &value_schema);
+        init_schema(key_schema_path, &key_schema);
+    }
 
     if (debug &&
             rd_kafka_conf_set(conf, "debug", debug, errstr, sizeof(errstr)) !=

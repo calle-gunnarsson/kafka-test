@@ -17,6 +17,19 @@ services:
         healthcheck:
             test: "exit 0"
 
+    registry:
+        build:
+            context: .
+            dockerfile: Dockerfile.registry
+        depends_on:
+            zookeeper:
+                condition: service_healthy
+        links:
+            - zookeeper
+        healthcheck:
+            test: "exit 0"
+
+
     producer:
         build:
             context: .
@@ -24,8 +37,11 @@ services:
         depends_on:
             kafka:
                 condition: service_healthy
+            registry:
+                condition: service_healthy
         links:
             - kafka
+            - registry
 
     pysumer:
         build:
@@ -34,8 +50,11 @@ services:
         depends_on:
             kafka:
                 condition: service_healthy
+            registry:
+                condition: service_healthy
         links:
             - kafka
+            - registry
 
     gosumer:
         build:
@@ -44,8 +63,11 @@ services:
         depends_on:
             kafka:
                 condition: service_healthy
+            registry:
+                condition: service_healthy
         links:
             - kafka
+            - registry
 
     csumer:
         build:
@@ -54,5 +76,8 @@ services:
         depends_on:
             kafka:
                 condition: service_healthy
+            registry:
+                condition: service_healthy
         links:
             - kafka
+            - registry

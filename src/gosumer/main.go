@@ -29,11 +29,17 @@ func main() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	schema, err := ioutil.ReadFile("/schema.avsc")
-	checkErr(err, "Unable to read schema")
+	valueSchema, err := ioutil.ReadFile("/value_schema.avsc")
+	checkErr(err, "Unable to read value_schema")
 
-	codec, err := goavro.NewCodec(string(schema))
-	checkErr(err, "Unable to create codec")
+	valueCodec, err := goavro.NewCodec(string(valueSchema))
+	checkErr(err, "Unable to create valueCodec")
+
+	keySchema, err := ioutil.ReadFile("/key_schema.avsc")
+	checkErr(err, "Unable to read key_schema")
+
+	keyCodec, err := goavro.NewCodec(string(keySchema))
+	checkErr(err, "Unable to create valueCodec")
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":               broker,
@@ -74,28 +80,34 @@ func main() {
 
 			case *kafka.Message:
 				bb := bytes.NewBuffer(e.Value)
-				decoded, err := codec.Decode(bb)
+				decoded, err := valueCodec.Decode(bb)
+				checkErr(err, "Unable to decode value")
 				record := decoded.(*goavro.Record)
 
+				bb = bytes.NewBuffer(e.Key)
+				decoded, err = keyCodec.Decode(bb)
+				checkErr(err, "Unable to decode key")
+				key := decoded.(string)
+
 				f, err := record.Get("id")
-				adID := f.(int32)
 				checkErr(err, "Unable get id from record")
+				adID := f.(int32)
 
 				f, err = record.Get("subject")
-				adSubject := f.(string)
 				checkErr(err, "Unable get subject from record")
+				adSubject := f.(string)
 
 				f, err = record.Get("price")
-				adPrice := f.(int32)
 				checkErr(err, "Unable get price from record")
+				adPrice := f.(int32)
 
 				tp := e.TopicPartition
-				fmt.Printf("%s[%d]@%-4d - %-6s - id: %-4d subject: %-7s price: %-6d\n", *tp.Topic, tp.Partition, tp.Offset, e.Key, adID, adSubject, adPrice)
+				fmt.Printf("%s[%d]@%-4d - %-6s - id: %-4d subject: %-7s price: %-6d\n", *tp.Topic, tp.Partition, tp.Offset, key, adID, adSubject, adPrice)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "%% Error: %v\n", err)
 				}
 			case kafka.PartitionEOF:
-				//fmt.Printf("%% Reached %v\n", e)
+				fmt.Printf("%% Reached %v\n", e)
 
 			case kafka.Error:
 				fmt.Fprintf(os.Stderr, "%% Error: %v\n", e)
